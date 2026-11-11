@@ -1,5 +1,9 @@
 # CI/CD Tools and Practices Final Project Template
 
+## Project: ci-cd-final-project
+
+Counter service with GitHub Actions continuous integration and Tekton/OpenShift continuous delivery. The pipeline cleans the workspace, clones the code, lints with flake8, runs nose unit tests, builds the container with Buildah, and deploys on port 8000.
+
 This repository contains the template to be used for the Final Project for the Coursera course **CI/CD Tools and Practices**.
 
 ## Usage
