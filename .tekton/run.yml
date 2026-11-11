@@ -1,0 +1,13 @@
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  generateName: ci-cd-final-project-
+spec:
+  pipelineRef:
+    name: ci-cd-final-project
+  serviceAccountName: pipeline
+  workspaces:
+    - name: output
+      persistentVolumeClaim:
+        claimName: oc-lab-pvc
+  timeout: 45m

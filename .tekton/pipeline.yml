@@ -1,0 +1,76 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: ci-cd-final-project
+spec:
+  workspaces:
+    - name: output
+  params:
+    - name: repo-url
+      type: string
+      default: https://github.com/kkanaan-gif/ci-cd-final-project.git
+    - name: app-name
+      type: string
+      default: ci-cd-final-project
+    - name: build-image
+      type: string
+      default: image-registry.openshift-image-registry.svc:5000/sn-labs-khalidkanaa1/ci-cd-final-project:latest
+  tasks:
+    - name: cleanup
+      taskRef:
+        name: cleanup
+      workspaces:
+        - name: source
+          workspace: output
+    - name: git-clone
+      runAfter: [cleanup]
+      taskRef:
+        kind: ClusterTask
+        name: git-clone
+      params:
+        - name: url
+          value: $(params.repo-url)
+        - name: revision
+          value: main
+      workspaces:
+        - name: output
+          workspace: output
+    - name: flake8
+      runAfter: [git-clone]
+      taskRef:
+        name: flake8
+      workspaces:
+        - name: source
+          workspace: output
+    - name: nose
+      runAfter: [flake8]
+      taskRef:
+        name: nose
+      params:
+        - name: args
+          value: -v --with-spec --spec-color --with-coverage --cover-package=service
+      workspaces:
+        - name: source
+          workspace: output
+    - name: buildah
+      runAfter: [nose]
+      taskRef:
+        kind: ClusterTask
+        name: buildah
+      params:
+        - name: IMAGE
+          value: $(params.build-image)
+      workspaces:
+        - name: source
+          workspace: output
+    - name: deploy
+      runAfter: [buildah]
+      taskRef:
+        kind: ClusterTask
+        name: openshift-client
+      params:
+        - name: SCRIPT
+          value: |
+            set -e
+            oc create deployment $(params.app-name) --image=$(params.build-image) --dry-run=client -o yaml | oc apply -f -
+            oc rollout status deployment/$(params.app-name) --timeout=180s
